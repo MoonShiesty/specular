@@ -38,6 +38,9 @@ interface ISequencerInbox is IDAProvider {
 
     /// @dev Thrown when overflow occurs reading txBatch (likely due to malformed txLengths)
     error TxBatchDataOverflow();
+    
+    /// @dev Thrown when overflow occurs reading txBatch (likely due to malformed txLengths)
+    error TxBatchVersionIncorrect();
 
     /// @dev Thrown when overflow occurs reading txBatch (likely due to malformed txLengths)
     error TxBatchVersionIncorrect();
