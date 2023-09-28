@@ -77,7 +77,7 @@ func (b *Broker[T]) SubscribeWithCallback(
 			case head := <-inCh:
 				err := callbackFn(ctx, head)
 				if err != nil {
-					log.Error("Failed triggering callback, err: %w", err)
+					log.Error("Failed triggering callback", "err", err)
 					return
 				}
 			case <-ctx.Done():
