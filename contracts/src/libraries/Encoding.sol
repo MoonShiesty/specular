@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Types} from "./Types.sol";
 import {Hashing} from "./Hashing.sol";
 import {RLPReader} from "./rlp/RLPReader.sol";
+import {RLPWriter} from "./rlp/RLPWriter.sol";
 
 library Encoding {
     /**

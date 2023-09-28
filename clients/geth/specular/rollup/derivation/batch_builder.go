@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/specularl2/specular/clients/geth/specular/rollup/types"
 	"github.com/specularl2/specular/clients/geth/specular/utils/log"
 )
@@ -20,19 +21,23 @@ type batchBuilder struct {
 	lastAppended types.BlockID
 }
 
-type BatchAttributes struct {
-	contexts           []*big.Int
-	txLengths          []*big.Int
-	firstL2BlockNumber *big.Int
-	txBatchVersion     *big.Int
-	txBatch            []byte // encoded batch of transactions.
+type BlockAttributes struct {
+	timestamp *big.Int
+	txs       [][]byte // encoded batch of transactions.
 }
 
-func (a *BatchAttributes) Contexts() []*big.Int         { return a.contexts }
-func (a *BatchAttributes) TxLengths() []*big.Int        { return a.txLengths }
+func (a *BlockAttributes) Timestamp() *big.Int { return a.timestamp }
+func (a *BlockAttributes) Txs() [][]byte       { return a.txs }
+
+type BatchAttributes struct {
+	firstL2BlockNumber *big.Int
+	blocks             []BlockAttributes
+}
+
+// TODO: find a better place to not hardcode this
+func (a *BatchAttributes) TxBatchVersion() *big.Int     { return big.NewInt(0) }
 func (a *BatchAttributes) FirstL2BlockNumber() *big.Int { return a.firstL2BlockNumber }
-func (a *BatchAttributes) TxBatchVersion() *big.Int     { return a.txBatchVersion }
-func (a *BatchAttributes) TxBatch() []byte              { return a.txBatch }
+func (a *BatchAttributes) Blocks() []BlockAttributes    { return a.blocks }
 
 type HeaderRef interface {
 	GetHash() common.Hash
@@ -91,39 +96,35 @@ func (b *batchBuilder) Advance() {
 
 func (b *batchBuilder) serializeToAttrs() (*BatchAttributes, error) {
 	var (
-		contexts, txLengths []*big.Int
-		buf                 = new(bytes.Buffer)
-		numBytes            uint64
-		block               DerivationBlock
-		idx                 int
+		buf    = new(bytes.Buffer)
+		block  DerivationBlock
+		idx    int
+		blocks []BlockAttributes
 	)
+
+	firstL2BlockNumber := big.NewInt(0).SetUint64(b.pendingBlocks[0].BlockNumber())
+	numBytes := rlp.IntSize(firstL2BlockNumber.Uint64())
+
+	// Iterate block-by-block to enforce soft cap on batch size.
 	for idx, block = range b.pendingBlocks {
-		// Construct context (`contexts` is a flat array of 2-tuples)
-		contexts = append(contexts, big.NewInt(0).SetUint64(block.NumTxs()))
-		contexts = append(contexts, big.NewInt(0).SetUint64(block.Timestamp()))
-		numBytes += 2 * 8
+		blockTimestamp := big.NewInt(0).SetUint64(block.Timestamp())
 		// Construct txData.
 		for _, tx := range block.Txs() {
-			curLen := buf.Len()
-			if _, err := buf.Write(tx); err != nil {
-				return nil, err
-			}
-			txSize := buf.Len() - curLen
-			txLengths = append(txLengths, big.NewInt(int64(txSize)))
-			numBytes += uint64(txSize)
+			numBytes = numBytes + rlp.IntSize(blockTimestamp.Uint64()) + len(tx)
 		}
-		// Enforce soft cap on batch size.
-		if numBytes > b.maxBatchSize {
-			log.Info("Reached max batch size", "numBytes", numBytes, "maxBatchSize", b.maxBatchSize)
+
+		// Enforce cap on batch size.
+		if uint64(numBytes) > b.maxBatchSize {
+			log.Info("Reached max batch size", "numBytes", numBytes, "maxBatchSize", b.maxBatchSize, "numBlocks", len(blocks))
 			break
 		}
+
+		blocks = append(blocks, BlockAttributes{firstL2BlockNumber, block.Txs()})
+		buf.Reset()
 	}
 	// Construct batch attributes.
-	var (
-		firstL2BlockNumber = big.NewInt(0).SetUint64(b.pendingBlocks[0].BlockNumber())
-		txBatchVersion     = big.NewInt(0) // TODO: Find a better place to not hard code this
-		attrs              = &BatchAttributes{contexts, txLengths, firstL2BlockNumber, txBatchVersion, buf.Bytes()}
-	)
+	attrs := &BatchAttributes{firstL2BlockNumber, blocks}
+
 	log.Info("Serialized l2 blocks", "first", firstL2BlockNumber, "last", b.pendingBlocks[idx].BlockNumber())
 	// Advance queue.
 	b.pendingBlocks = b.pendingBlocks[idx+1:]
