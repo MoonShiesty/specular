@@ -3,6 +3,7 @@ package txmgr
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"math/big"
 	"strings"
@@ -168,7 +169,7 @@ func (m *TxManager) craftTx(ctx context.Context, candidate TxCandidate) (*types.
 		Value:     candidate.Value,
 	}
 
-	m.l.Info("Creating tx", "to", rawTx.To, "from", m.cfg.From)
+	m.l.Info("Creating tx", "to", rawTx.To, "from", m.cfg.From, "rawTx", rawTx, "data", hex.EncodeToString(rawTx.Data))
 
 	// If the gas limit is set, we can use that as the gas
 	if candidate.GasLimit != 0 {

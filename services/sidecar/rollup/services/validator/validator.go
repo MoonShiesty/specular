@@ -110,6 +110,7 @@ func (v *Validator) createAssertion(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to get next assertion attrs: %w", err)
 	}
+	log.Info("inbox size", "size", assertionAttrs.inboxSize)
 	// TODO fix assumptions: not reorg-resistant. Other validators may have inserted new assertions.
 	if assertionAttrs.inboxSize <= v.lastCreatedAssertionAttrs.inboxSize {
 		log.Info("No new blocks to create assertion for yet.")
@@ -180,7 +181,12 @@ func (v *Validator) getNextAssertionAttrs(ctx context.Context) (assertionAttribu
 	if err != nil {
 		return assertionAttributes{}, fmt.Errorf("failed to get finalized assertion attrs: %w", err)
 	}
-	return assertionAttributes{v.lastCreatedAssertionAttrs.inboxSize + 1, header.Root}, nil
+	inboxSize, err := v.l1BridgeClient.GetInboxSize(ctx)
+	if err != nil {
+		return assertionAttributes{}, fmt.Errorf("failed to get inbox size: %w", err)
+	}
+
+	return assertionAttributes{inboxSize.Uint64(), header.Root}, nil
 }
 
 func (v *Validator) ensureStaked(ctx context.Context) error {

@@ -20,6 +20,7 @@ const (
 	CreateAssertionFnName                 = "createAssertion"
 	ConfirmFirstUnresolvedAssertionFnName = "confirmFirstUnresolvedAssertion"
 	RejectFirstUnresolvedAssertionFnName  = "rejectFirstUnresolvedAssertion"
+
 	// IChallenge.sol functions
 	bisectExecutionFn = "bisectExecution"
 	// IRollup.sol errors (TODO: figure out a work-around to hardcoding)
