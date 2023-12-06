@@ -109,4 +109,6 @@ npx ts-node scripts/config/create_config.ts \
   --genesis-hash-path $GENESIS_EXPORTED_HASH_PATH \
   --l1-network $L1_ENDPOINT
 
+cat $DEPLOYMENTS_CFG_PATH >> $CONTRACTS_DIR/.env
+
 echo "Done."
