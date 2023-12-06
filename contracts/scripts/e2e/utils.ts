@@ -6,6 +6,9 @@ const l1Provider = new ethers.providers.JsonRpcProvider(
   "http://localhost:8545"
 );
 
+require('dotenv').config();
+
+console.log(process.env);
 const l1BridgeAddr = process.env.L1STANDARD_BRIDGE_ADDR;
 const l2BridgeAddr = process.env.ROLLUP_ADDR;
 const l1OracleAddress = process.env.SEQUENCER_INBOX_ADDR;
@@ -34,6 +37,7 @@ export async function getSignersAndContracts() {
     "L1StandardBridge",
     l1Bridger
   );
+  console.log(l1BridgeAddr)
   const l1StandardBridge = L1StandardBridgeFactory.attach(l1BridgeAddr);
 
   const L2StandardBridgeFactory = await ethers.getContractFactory(
