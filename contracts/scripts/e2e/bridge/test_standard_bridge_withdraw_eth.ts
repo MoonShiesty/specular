@@ -32,7 +32,10 @@ async function main() {
   const bridgeTx = await l2StandardBridge.bridgeETH(200_000, [], {
     value: bridgeValue,
   });
+  console.log(l2StandardBridge)
+  console.log(bridgeTx)
   const txWithLogs = await bridgeTx.wait();
+  console.log(txWithLogs)
 
   const initEvent = await l2Portal.interface.parseLog(txWithLogs.logs[1]);
   const crossDomainMessage = {
@@ -86,9 +89,16 @@ async function main() {
     initEvent.args.withdrawalHash
   );
 
+  let rawBlock = await l1Provider.send("eth_getBlockByNumber", [
+    ethers.utils.hexValue(lastConfirmedBlockNumber),
+    false, // We only want the block header
+  ]);
+  const l2VmHash = rawBlock.l2VmHash
+  console.log("\tfinializing withdraw", "l2VmHash", l2VmHash);
   const finalizeTx = await l1Portal.finalizeWithdrawalTransaction(
     crossDomainMessage,
     assertionId,
+    l2VmHash,
     accountProof,
     storageProof
   );

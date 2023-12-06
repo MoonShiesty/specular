@@ -94,6 +94,7 @@ async function main() {
     200_000,
     []
   );
+  console.log(withdrawalTx)
   const txWithLogs = await withdrawalTx.wait();
 
   const l2BalanceEmpty = await l2Token.balanceOf(l2Bridger.address);
@@ -147,9 +148,11 @@ async function main() {
     withdrawalEvent.args.withdrawalHash
   );
 
+  let l2VmHash = l2Provider.formatter.hash(rawBlock.stateRoot);
   const finalizeTx = await l1Portal.finalizeWithdrawalTransaction(
     crossDomainMessage,
     assertionId,
+    l2VmHash,
     withdrawalProof.accountProof,
     withdrawalProof.storageProof
   );
