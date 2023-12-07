@@ -51,6 +51,7 @@ async function main() {
     l1Portal.address,
     initEvent.args.depositHash
   );
+  console.log("proofs", accountProof, storageProof)
   // This should not be required thanks to magi
   //await l1Oracle.setL1OracleValues(blockNumber, stateRoot, 0);
 
@@ -59,11 +60,13 @@ async function main() {
     ethers.utils.hexValue(blockNumber),
     false, // We only want the block header
   ]);
+  console.log("rawBlock", rawBlock)
   stateRoot = l1Provider.formatter.hash(rawBlock.stateRoot);
+  console.log("state root", stateRoot)
 
   // This should not be required thanks to magi
   //await l1Oracle.setL1OracleValues(blockNumber, stateRoot, 0);
-  l1Provider.send()
+  // l1Provider.send()
 
   // TODO: make this a proper event driven
   await delay(8000);

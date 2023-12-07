@@ -107,12 +107,8 @@ sleep 1
 $SBIN/start_sidecar.sh &>proc3.out &
 sleep 1
 
-cat $DEPLOYMENTS_ENV
-echo $L1STANDARD_BRIDGE_ADDR
-
 cd $CONTRACTS_DIR
 echo "Running test: $1"
-echo $L1STANDARD_BRIDGE_ADDR
 # Run testing script
 case $1 in
 transactions)

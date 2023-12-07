@@ -6,6 +6,7 @@ import {
   delay,
   getLastBlockNumber,
 } from "../utils";
+import { BigNumber } from "ethers";
 
 async function main() {
   const {
@@ -32,10 +33,7 @@ async function main() {
   const bridgeTx = await l2StandardBridge.bridgeETH(200_000, [], {
     value: bridgeValue,
   });
-  console.log(l2StandardBridge)
-  console.log(bridgeTx)
   const txWithLogs = await bridgeTx.wait();
-  console.log(txWithLogs)
 
   const initEvent = await l2Portal.interface.parseLog(txWithLogs.logs[1]);
   const crossDomainMessage = {
@@ -50,25 +48,28 @@ async function main() {
 
   const blockNumber = txWithLogs.blockNumber;
 
-  let lastConfirmedBlockNumber = 0;
   let assertionWasCreated = false;
-  let assertionId;
+  let assertionId: number | undefined = undefined;
+  let lastConfirmedBlockNum: number | undefined = undefined;
 
   inbox.on(
     inbox.filters.TxBatchAppended(),
-    async (batchNumber, previousInboxSize, inboxSize, event) => {
-      const tx = await event.getTransaction();
-      lastConfirmedBlockNumber = await getLastBlockNumber(tx.data);
+    (event) => {
+      console.log(`TxBatchAppended blockNum: ${event.blockNumber}`)
     }
   );
 
-  rollup.on(rollup.filters.AssertionConfirmed(), (id) => {
+  rollup.on(rollup.filters.AssertionConfirmed(), async (id: BigNumber) => {
     if (assertionWasCreated) {
-      assertionId = id;
+      assertionId = id.toNumber();
+      const assertion = await rollup.getAssertion(assertionId);
+      lastConfirmedBlockNum = assertion.blockNum.toNumber();
+      console.log("AssertionConfirmed", "id", assertionId, "blockNum", lastConfirmedBlockNum)
     }
   });
 
   rollup.on(rollup.filters.AssertionCreated(), () => {
+    console.log("AssertionCreated")
     assertionWasCreated = true;
   });
 
@@ -79,22 +80,22 @@ async function main() {
     }
   );
 
-  console.log("\twaiting for assertion to be confirmed...");
-  while (lastConfirmedBlockNumber < blockNumber || !assertionId) {
+  console.log("Waiting for assertion to be confirmed...");
+  while (!assertionId || !lastConfirmedBlockNum || lastConfirmedBlockNum < bridgeTx.number) {
     await delay(500);
   }
-
+ 
   const { accountProof, storageProof } = await getWithdrawalProof(
     l2Portal.address,
     initEvent.args.withdrawalHash
   );
 
-  let rawBlock = await l1Provider.send("eth_getBlockByNumber", [
-    ethers.utils.hexValue(lastConfirmedBlockNumber),
+  let rawBlock = await l2Provider.send("eth_getBlockByNumber", [
+    ethers.utils.hexValue(lastConfirmedBlockNum),
     false, // We only want the block header
   ]);
-  const l2VmHash = rawBlock.l2VmHash
-  console.log("\tfinializing withdraw", "l2VmHash", l2VmHash);
+  const l2VmHash = l2Provider.formatter.hash(rawBlock.hash);
+  console.log("Finalizing withdraw", "l2VmHash", l2VmHash);
   const finalizeTx = await l1Portal.finalizeWithdrawalTransaction(
     crossDomainMessage,
     assertionId,

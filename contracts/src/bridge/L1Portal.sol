@@ -134,7 +134,7 @@ contract L1Portal is
         // bytes calldata encodedBlockHeader,
         bytes[] calldata withdrawalAccountProof,
         bytes[] calldata withdrawalProof
-    ) external override onlyProxy whenNotPaused {
+    ) external override whenNotPaused {
         // Prevent nested withdrawals within withdrawals.
         require(l2Sender == DEFAULT_L2_SENDER, "L1Portal: can only trigger one withdrawal per transaction");
 
@@ -217,7 +217,6 @@ contract L1Portal is
         public
         payable
         override
-        onlyProxy
         whenNotPaused
     {
         // Transform the from-address to its alias if the caller is a contract.

@@ -140,7 +140,7 @@ async function main() {
   console.log("\twaiting for assertion to be confirmed...");
 
   while (lastConfirmedBlockNumber < blockNumber || !assertionId) {
-    await delay(500);
+    await delay(5000);
   }
 
   const withdrawalProof = await getWithdrawalProof(

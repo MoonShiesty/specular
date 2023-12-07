@@ -170,11 +170,39 @@ export async function getLastBlockNumber(data) {
     data.slice(0, 10), // method id (8 hex chars) with leading Ox
     data
   );
-  const contexts: BigNumber[] = decoded[0];
-  const firstL2BlockNumber = decoded[2];
-  const lastL2BlockNumber =
-    contexts.length / 2 + firstL2BlockNumber.toNumber() - 1;
-  return lastL2BlockNumber;
+
+  /*
+    * txBatchData format:
+    *   txBatchData = version || batchData (|| is concatenation)
+    *   where:
+    *   - version: uint8
+    *   - data: bytes
+    * batchData format:
+    *   batchData = RLP([firstL2BlockNum, batchList])
+    *   where:
+    *   - firstL2BlockNum: uint256
+    *   - batchList: List[blockData]
+    *   blockData = [timestamp, txList]
+    *   where:
+    *   - timestamp: uint256
+    *   - txList: bytes
+    */
+  const txBatchData = decoded[0]
+  const version = txBatchData[0]
+  if (version != 0) {
+    throw new Error("invalid batch data version")
+  }
+
+  const batchData = txBatchData.slice(1) // first byte for version
+  console.log(batchData)
+  const decodedBatchData = ethers.utils.RLP.decode(batchData)
+
+  console.log(decodedBatchData)
+
+  const firstL2BlockNumber = decodedBatchData[0]
+  const numBlocks = decodedBatchData[1].length
+
+  return firstL2BlockNumber + numBlocks;
 }
 
 export function getStorageKey(messageHash: string) {
