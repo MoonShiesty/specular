@@ -4,7 +4,6 @@ import {
   getStorageKey,
   getWithdrawalProof,
   delay,
-  getLastBlockNumber,
 } from "../utils";
 import { BigNumber } from "ethers";
 
@@ -81,7 +80,7 @@ async function main() {
   );
 
   console.log("Waiting for assertion to be confirmed...");
-  while (!assertionId || !lastConfirmedBlockNum || lastConfirmedBlockNum < bridgeTx.number) {
+  while (!assertionId || !lastConfirmedBlockNum || lastConfirmedBlockNum < blockNumber) {
     await delay(500);
   }
  
